@@ -1,40 +1,40 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import Icon from '@iconify/svelte';
+import Icon from "@iconify/svelte";
+import { onMount } from "svelte";
 
-	let enabled = $state(true); // 默认开启
+let enabled = $state(true); // 默认开启
 
-	function toggle() {
-		enabled = !enabled;
-		localStorage.setItem('codeRainEnabled', enabled.toString());
-		
-		// 触发自定义事件，通知其他组件
-		window.dispatchEvent(new CustomEvent('codeRainToggle'));
+function toggle() {
+	enabled = !enabled;
+	localStorage.setItem("codeRainEnabled", enabled.toString());
+
+	// 触发自定义事件，通知其他组件
+	window.dispatchEvent(new CustomEvent("codeRainToggle"));
+}
+
+function showPanel() {
+	const panel = document.querySelector("#code-rain-panel");
+	if (panel) {
+		panel.classList.remove("float-panel-closed");
 	}
+}
 
-	function showPanel() {
-		const panel = document.querySelector("#code-rain-panel");
-		if (panel) {
-			panel.classList.remove("float-panel-closed");
-		}
+function hidePanel() {
+	const panel = document.querySelector("#code-rain-panel");
+	if (panel) {
+		panel.classList.add("float-panel-closed");
 	}
+}
 
-	function hidePanel() {
-		const panel = document.querySelector("#code-rain-panel");
-		if (panel) {
-			panel.classList.add("float-panel-closed");
-		}
+onMount(() => {
+	const stored = localStorage.getItem("codeRainEnabled");
+	// 如果 localStorage 中没有值，默认为 true（开启）
+	enabled = stored === null ? true : stored === "true";
+	// 确保 localStorage 中有值
+	if (stored === null) {
+		localStorage.setItem("codeRainEnabled", "true");
 	}
-
-	onMount(() => {
-		const stored = localStorage.getItem('codeRainEnabled');
-		// 如果 localStorage 中没有值，默认为 true（开启）
-		enabled = stored === null ? true : stored === 'true';
-		// 确保 localStorage 中有值
-		if (stored === null) {
-			localStorage.setItem('codeRainEnabled', 'true');
-		}
-	});
+});
 </script>
 
 <!-- z-50 make the panel higher than other float panels -->
