@@ -2,7 +2,7 @@
 import Icon from "@iconify/svelte";
 import { onMount } from "svelte";
 
-let enabled = $state(true); // 默认开启
+let enabled = $state(false); // 默认关闭
 
 function toggle() {
 	enabled = !enabled;
@@ -28,11 +28,11 @@ function hidePanel() {
 
 onMount(() => {
 	const stored = localStorage.getItem("codeRainEnabled");
-	// 如果 localStorage 中没有值，默认为 true（开启）
-	enabled = stored === null ? true : stored === "true";
+	// 如果 localStorage 中没有值，默认为 false（关闭）
+	enabled = stored === null ? false : stored === "true";
 	// 确保 localStorage 中有值
 	if (stored === null) {
-		localStorage.setItem("codeRainEnabled", "true");
+		localStorage.setItem("codeRainEnabled", "false");
 	}
 });
 </script>

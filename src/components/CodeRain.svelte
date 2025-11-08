@@ -184,8 +184,8 @@ function handleScroll() {
 // 监听 localStorage 变化
 function checkEnabled() {
 	const stored = localStorage.getItem("codeRainEnabled");
-	// 如果 localStorage 中没有值，默认为 true（开启）
-	const newEnabled = stored === null ? true : stored === "true";
+	// 如果 localStorage 中没有值，默认为 false（关闭）
+	const newEnabled = stored === null ? false : stored === "true";
 	if (newEnabled !== enabled) {
 		enabled = newEnabled;
 		// 代码雨状态改变时，淡入淡出背景图片
@@ -224,11 +224,17 @@ onMount(() => {
 	if (enabled) {
 		backgroundOpacity = 0;
 	} else {
-		const initialScrollTop =
-			window.scrollY || document.documentElement.scrollTop;
-		// 浏览内容页面时，背景始终半透明（0.3）
-		backgroundOpacity = 0.3;
-		scrollOpacity = 0.3;
+		// 默认封面可见，背景图片应该完全不透明
+		if (isCoverVisible) {
+			backgroundOpacity = 1.0;
+			scrollOpacity = 1.0;
+		} else {
+			const initialScrollTop =
+				window.scrollY || document.documentElement.scrollTop;
+			// 浏览内容页面时，背景始终半透明（0.3）
+			backgroundOpacity = 0.3;
+			scrollOpacity = 0.3;
+		}
 	}
 
 	// 监听封面滚动事件
