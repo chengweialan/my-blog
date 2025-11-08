@@ -6,6 +6,7 @@ import "@fontsource/roboto/700.css";
 import CodeRain from "@components/CodeRain.svelte";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
 import CoverPage from "@components/CoverPage.svelte";
+import ParticleEffect from "@components/ParticleEffect.svelte";
 import ScrollEffect from "@components/ScrollEffect.svelte";
 import { profileConfig, siteConfig } from "@/config";
 import {
@@ -156,6 +157,7 @@ const bannerOffset =
 	>
 		<ConfigCarrier></ConfigCarrier>
 		<CodeRain client:only="svelte"></CodeRain>
+		<ParticleEffect client:only="svelte"></ParticleEffect>
 		<CoverPage client:only="svelte"></CoverPage>
 		<ScrollEffect client:only="svelte"></ScrollEffect>
 		<slot />

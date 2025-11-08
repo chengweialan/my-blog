@@ -1,4 +1,5 @@
 <script lang="ts">
+import Icon from "@iconify/svelte";
 import { onMount } from "svelte";
 import { profileConfig, siteConfig } from "../config";
 
@@ -95,24 +96,100 @@ function scrollToContent() {
 	window.scrollTo({ top: 1, behavior: "smooth" });
 }
 
+function showCover() {
+	// 显示封面页
+	isCoverVisible = true;
+	coverScroll = 0;
+	updateCoverState();
+	// 滚动到页面顶部
+	window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 onMount(() => {
 	// 初始化封面状态
 	updateCoverState();
 
+	// 监听显示封面事件
+	const handleShowCover = (event: CustomEvent<{ show: boolean }>) => {
+		if (event.detail.show) {
+			showCover();
+		}
+	};
+	window.addEventListener("showCover", handleShowCover as EventListener);
+
+	// 监听跳转到内容事件
+	const handleScrollToContent = () => {
+		scrollToContent();
+	};
+	window.addEventListener(
+		"scrollToContent",
+		handleScrollToContent as EventListener,
+	);
+
 	window.addEventListener("wheel", handleWheel, { passive: false });
 	window.addEventListener("scroll", handleScroll, { passive: true });
+
+	// 阻止封面页的所有点击事件
+	const handleCoverClick = (e: MouseEvent) => {
+		if (isCoverVisible) {
+			// 检查点击的目标是否在导航栏或其他允许点击的区域
+			const target = e.target as HTMLElement;
+			const navbar = target.closest("#navbar");
+			const navMenuPanel = target.closest("#nav-menu-panel");
+			const displaySetting = target.closest("#display-setting");
+			const codeRainPanel = target.closest("#code-rain-panel");
+			const coverPageDownPanel = target.closest("#cover-page-down-panel");
+			const coverPagePanel = target.closest("#cover-page-panel");
+
+			// 如果点击的是导航栏或相关面板，允许点击
+			if (
+				navbar ||
+				navMenuPanel ||
+				displaySetting ||
+				codeRainPanel ||
+				coverPageDownPanel ||
+				coverPagePanel
+			) {
+				return;
+			}
+
+			// 否则阻止所有点击事件
+			e.preventDefault();
+			e.stopPropagation();
+			e.stopImmediatePropagation();
+		}
+	};
+	document.addEventListener("click", handleCoverClick, true); // 使用捕获阶段
 
 	// 监听链接点击事件（排除封面页的点击）
 	const handleLinkClick = (e: MouseEvent) => {
 		// 如果点击的是封面页，不处理链接点击
-		const target = e.target as HTMLElement;
-		const coverPage = target.closest(
-			'[role="button"][aria-label="点击跳转到内容"]',
-		);
-		if (coverPage) {
+		if (isCoverVisible) {
+			const target = e.target as HTMLElement;
+			const navbar = target.closest("#navbar");
+			const navMenuPanel = target.closest("#nav-menu-panel");
+			const displaySetting = target.closest("#display-setting");
+			const codeRainPanel = target.closest("#code-rain-panel");
+			const coverPageDownPanel = target.closest("#cover-page-down-panel");
+			const coverPagePanel = target.closest("#cover-page-panel");
+
+			// 如果点击的是导航栏或相关面板，允许点击
+			if (
+				navbar ||
+				navMenuPanel ||
+				displaySetting ||
+				codeRainPanel ||
+				coverPageDownPanel ||
+				coverPagePanel
+			) {
+				return;
+			}
+
+			// 否则阻止链接点击
 			return;
 		}
 
+		const target = e.target as HTMLElement;
 		const link = target.closest("a");
 		if (link?.href) {
 			// 如果是内部链接，重置封面
@@ -144,25 +221,24 @@ onMount(() => {
 	}
 
 	return () => {
+		window.removeEventListener("showCover", handleShowCover as EventListener);
+		window.removeEventListener(
+			"scrollToContent",
+			handleScrollToContent as EventListener,
+		);
 		window.removeEventListener("wheel", handleWheel);
 		window.removeEventListener("scroll", handleScroll);
+		document.removeEventListener("click", handleCoverClick, true);
 		document.removeEventListener("click", handleLinkClick);
 	};
 });
 </script>
 
 <div
-	class="fixed inset-0 z-20 flex flex-col items-center justify-center"
+	class="fixed inset-0 z-20 flex flex-col items-center justify-center pointer-events-none"
 	class:opacity-0={!isCoverVisible}
 	class:opacity-100={isCoverVisible}
-	class:pointer-events-none={!isCoverVisible}
-	class:pointer-events-auto={isCoverVisible}
-	class:cursor-pointer={isCoverVisible}
 	style="transition: opacity 0.3s ease-out;"
-	onclick={isCoverVisible ? scrollToContent : undefined}
-	role={isCoverVisible ? "button" : undefined}
-	aria-label={isCoverVisible ? "点击跳转到内容" : undefined}
-	tabindex={isCoverVisible ? 0 : undefined}
 >
 	<div class="text-center relative">
 		<!-- 电磁光圈效果 -->
@@ -183,7 +259,9 @@ onMount(() => {
 			{siteConfig.subtitle}
 		</p>
 	</div>
+	
 </div>
+
 
 <style>
 	@keyframes electromagnetic-pulse {
