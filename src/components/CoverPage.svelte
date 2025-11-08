@@ -3,66 +3,103 @@ import { onMount } from "svelte";
 import { siteConfig } from "../config";
 import { url } from "../utils/url-utils";
 
-let isCoverVisible = $state(true); // 封面是否可见（分立状态），默认显示封面
-let coverScroll = $state(0); // 累积滚动距离，用于触发切换
+let isCoverVisible = $state(true);
+let coverScroll = $state(0);
 let isDark = $state(false);
 
-// 获取字体文件 URL（包含 base 路径）
+let scrollRafId: number | null = null;
+let fontStyleInitialized = false;
+
 const fontUrl = url("/fonts/YeZiGongChangZuiHanJiangXingCao-2.ttf");
 const subtitleFontUrl = url("/fonts/AnJingChenXingShuFanTi-2.ttf");
+const SWITCH_THRESHOLD = 150;
+const FONT_STYLE_ID = "cover-page-fonts";
 
-const SWITCH_THRESHOLD = 150; // 切换阈值：需要累积150px的滚动距离才能触发切换
+const fontFaceCSS = `
+	@font-face {
+		font-family: "Xingkai";
+		src: url("${fontUrl}") format("truetype");
+		font-weight: normal;
+		font-style: normal;
+		font-display: swap;
+	}
+	@font-face {
+		font-family: "AnJingChenXingShuFanTi";
+		src: url("${subtitleFontUrl}") format("truetype");
+		font-weight: normal;
+		font-style: normal;
+		font-display: swap;
+	}
+`;
+
+function ensureFontStyle() {
+	if (fontStyleInitialized) return;
+
+	let fontStyle = document.getElementById(FONT_STYLE_ID) as HTMLStyleElement;
+	if (!fontStyle) {
+		fontStyle = document.createElement("style");
+		fontStyle.id = FONT_STYLE_ID;
+		fontStyle.textContent = fontFaceCSS;
+		document.head.appendChild(fontStyle);
+		fontStyleInitialized = true;
+	} else if (!fontStyle.textContent) {
+		fontStyle.textContent = fontFaceCSS;
+		fontStyleInitialized = true;
+	}
+}
+
+async function loadFonts() {
+	try {
+		const font1 = new FontFace("Xingkai", `url("${fontUrl}")`);
+		const font2 = new FontFace(
+			"AnJingChenXingShuFanTi",
+			`url("${subtitleFontUrl}")`,
+		);
+
+		await Promise.all([font1.load(), font2.load()]);
+
+		document.fonts.add(font1);
+		document.fonts.add(font2);
+	} catch (error) {
+		console.warn("Font load failed:", error);
+	}
+}
 
 function handleWheel(event: WheelEvent) {
 	const scrollTop = window.scrollY || document.documentElement.scrollTop;
 
 	if (isCoverVisible) {
-		// 在封面状态时，需要累积向下滚动距离才能切换到内容页
 		if (event.deltaY > 0) {
-			event.preventDefault(); // 阻止默认滚动行为
-			// 累积向下滚动距离
+			event.preventDefault();
 			coverScroll = Math.min(coverScroll + event.deltaY, SWITCH_THRESHOLD * 2);
-			// 如果累积距离超过阈值，切换到内容页
 			if (coverScroll >= SWITCH_THRESHOLD) {
 				resetCover();
-				// 滚动到内容页顶部
 				window.scrollTo({ top: 0, behavior: "smooth" });
 			}
 		} else if (event.deltaY < 0) {
-			// 如果向上滚动，重置累积距离
 			coverScroll = Math.max(coverScroll + event.deltaY, 0);
 		}
 	} else {
-		// 在内容页状态时，必须同时满足两个条件才能切换到封面页：
-		// 1. 滑动开始时右侧滑动条在当前页面顶部（scrollTop === 0）
-		// 2. 滑动力度够大（累积距离 >= SWITCH_THRESHOLD）
-
-		// 严格检查：如果不在顶部，立即重置累积距离，不进行任何处理
 		if (scrollTop !== 0) {
 			coverScroll = 0;
 			return;
 		}
 
-		// 只有在顶部时才开始累积
 		if (event.deltaY < 0) {
-			// 向上滚动：累积向上滚动距离（deltaY 是负数，所以用绝对值）
-			event.preventDefault(); // 阻止默认滚动行为
+			event.preventDefault();
 			coverScroll = coverScroll + Math.abs(event.deltaY);
-			// 如果累积距离超过阈值，切换到封面页
 			if (coverScroll >= SWITCH_THRESHOLD) {
 				isCoverVisible = true;
-				coverScroll = 0; // 重置累积距离
+				coverScroll = 0;
 				updateCoverState();
 			}
 		} else if (event.deltaY > 0) {
-			// 如果向下滚动，重置累积距离
 			coverScroll = 0;
 		}
 	}
 }
 
 function updateCoverState() {
-	// 根据封面状态更新样式和触发事件
 	const progress = isCoverVisible ? 1 : 0;
 	window.dispatchEvent(
 		new CustomEvent("coverScroll", { detail: { progress } }),
@@ -76,28 +113,27 @@ function resetCover() {
 }
 
 function handleScroll() {
-	const scrollTop = window.scrollY || document.documentElement.scrollTop;
+	if (scrollRafId !== null) return;
 
-	// 如果页面滚动离开顶部，重置封面状态和累积距离
-	if (scrollTop > 0) {
-		// 如果不在顶部，重置封面状态和累积距离
-		if (isCoverVisible) {
-			resetCover();
-		} else {
-			// 不在封面状态时，重置累积距离
+	scrollRafId = requestAnimationFrame(() => {
+		const scrollTop = window.scrollY || document.documentElement.scrollTop;
+		if (scrollTop > 0) {
+			if (isCoverVisible) {
+				resetCover();
+			} else {
+				coverScroll = 0;
+			}
+		} else if (scrollTop === 0 && !isCoverVisible) {
 			coverScroll = 0;
+		} else if (scrollTop === 0 && isCoverVisible) {
+			ensureFontStyle();
 		}
-	} else if (scrollTop === 0 && !isCoverVisible) {
-		// 如果回到页面顶部且不在封面状态，重置累积距离
-		// 这样可以确保从顶部重新开始累积
-		coverScroll = 0;
-	}
+		scrollRafId = null;
+	});
 }
 
 function scrollToContent() {
-	// 重置封面并滚动到内容区域
 	resetCover();
-	// 稍微滚动一下，确保离开顶部
 	window.scrollTo({ top: 1, behavior: "smooth" });
 }
 
@@ -109,144 +145,142 @@ function updateTheme() {
 }
 
 function showCover() {
-	// 显示封面页
 	isCoverVisible = true;
 	coverScroll = 0;
 	updateCoverState();
-	// 滚动到页面顶部
 	window.scrollTo({ top: 0, behavior: "smooth" });
+}
 
-	// 确保字体样式存在（处理页面切换后字体丢失的情况）
-	const fontStyleId = "cover-page-fonts";
-	let fontStyle = document.getElementById(fontStyleId) as HTMLStyleElement;
-	if (!fontStyle) {
-		fontStyle = document.createElement("style");
-		fontStyle.id = fontStyleId;
-		fontStyle.textContent = `
-			@font-face {
-				font-family: "Xingkai";
-				src: url("${fontUrl}") format("truetype");
-				font-weight: normal;
-				font-style: normal;
-				font-display: swap;
-			}
-			@font-face {
-				font-family: "AnJingChenXingShuFanTi";
-				src: url("${subtitleFontUrl}") format("truetype");
-				font-weight: normal;
-				font-style: normal;
-				font-display: swap;
-			}
-		`;
-		document.head.appendChild(fontStyle);
-	} else {
-		// 如果字体样式已存在，更新URL（处理页面切换的情况）
-		fontStyle.textContent = `
-			@font-face {
-				font-family: "Xingkai";
-				src: url("${fontUrl}") format("truetype");
-				font-weight: normal;
-				font-style: normal;
-				font-display: swap;
-			}
-			@font-face {
-				font-family: "AnJingChenXingShuFanTi";
-				src: url("${subtitleFontUrl}") format("truetype");
-				font-weight: normal;
-				font-style: normal;
-				font-display: swap;
-			}
-		`;
+function getClickTargets(target: HTMLElement) {
+	const navbar = target.closest("#navbar");
+	if (navbar) {
+		return {
+			navbar,
+			navMenuPanel: null,
+			displaySetting: null,
+			codeRainPanel: null,
+			coverPageDownPanel: null,
+			coverPagePanel: null,
+			artisticArrow: null,
+		};
 	}
+
+	const navMenuPanel = target.closest("#nav-menu-panel");
+	if (navMenuPanel) {
+		return {
+			navbar: null,
+			navMenuPanel,
+			displaySetting: null,
+			codeRainPanel: null,
+			coverPageDownPanel: null,
+			coverPagePanel: null,
+			artisticArrow: null,
+		};
+	}
+
+	const displaySetting = target.closest("#display-setting");
+	if (displaySetting) {
+		return {
+			navbar: null,
+			navMenuPanel: null,
+			displaySetting,
+			codeRainPanel: null,
+			coverPageDownPanel: null,
+			coverPagePanel: null,
+			artisticArrow: null,
+		};
+	}
+
+	const codeRainPanel = target.closest("#code-rain-panel");
+	if (codeRainPanel) {
+		return {
+			navbar: null,
+			navMenuPanel: null,
+			displaySetting: null,
+			codeRainPanel,
+			coverPageDownPanel: null,
+			coverPagePanel: null,
+			artisticArrow: null,
+		};
+	}
+
+	const coverPageDownPanel = target.closest("#cover-page-down-panel");
+	if (coverPageDownPanel) {
+		return {
+			navbar: null,
+			navMenuPanel: null,
+			displaySetting: null,
+			codeRainPanel: null,
+			coverPageDownPanel,
+			coverPagePanel: null,
+			artisticArrow: null,
+		};
+	}
+
+	const coverPagePanel = target.closest("#cover-page-panel");
+	if (coverPagePanel) {
+		return {
+			navbar: null,
+			navMenuPanel: null,
+			displaySetting: null,
+			codeRainPanel: null,
+			coverPageDownPanel: null,
+			coverPagePanel,
+			artisticArrow: null,
+		};
+	}
+
+	const artisticArrow =
+		target.closest(".artistic-arrow-container") ||
+		target.closest(".artistic-arrow-btn") ||
+		target.closest(".artistic-arrow");
+
+	return {
+		navbar: null,
+		navMenuPanel: null,
+		displaySetting: null,
+		codeRainPanel: null,
+		coverPageDownPanel: null,
+		coverPagePanel: null,
+		artisticArrow,
+	};
+}
+
+function isClickableArea(targets: ReturnType<typeof getClickTargets>) {
+	return !!(
+		targets.navbar ||
+		targets.navMenuPanel ||
+		targets.displaySetting ||
+		targets.codeRainPanel ||
+		targets.coverPageDownPanel ||
+		targets.coverPagePanel ||
+		targets.artisticArrow
+	);
+}
+
+function initializeCoverState() {
+	const scrollTop = window.scrollY || document.documentElement.scrollTop;
+	isCoverVisible = scrollTop === 0;
+	coverScroll = 0;
+	updateCoverState();
 }
 
 onMount(() => {
-	// 动态创建字体样式 - 使用ID确保不会重复创建
-	const fontStyleId = "cover-page-fonts";
-	let fontStyle = document.getElementById(fontStyleId) as HTMLStyleElement;
-
-	if (!fontStyle) {
-		fontStyle = document.createElement("style");
-		fontStyle.id = fontStyleId;
-		fontStyle.textContent = `
-			@font-face {
-				font-family: "Xingkai";
-				src: url("${fontUrl}") format("truetype");
-				font-weight: normal;
-				font-style: normal;
-				font-display: swap;
-			}
-			@font-face {
-				font-family: "AnJingChenXingShuFanTi";
-				src: url("${subtitleFontUrl}") format("truetype");
-				font-weight: normal;
-				font-style: normal;
-				font-display: swap;
-			}
-		`;
-		document.head.appendChild(fontStyle);
-	} else {
-		// 如果字体样式已存在，更新URL（处理页面切换的情况）
-		fontStyle.textContent = `
-			@font-face {
-				font-family: "Xingkai";
-				src: url("${fontUrl}") format("truetype");
-				font-weight: normal;
-				font-style: normal;
-				font-display: swap;
-			}
-			@font-face {
-				font-family: "AnJingChenXingShuFanTi";
-				src: url("${subtitleFontUrl}") format("truetype");
-				font-weight: normal;
-				font-style: normal;
-				font-display: swap;
-			}
-		`;
-	}
-
-	// 初始化封面状态 - 检查页面是否在顶部
-	const initializeCoverState = () => {
-		const scrollTop = window.scrollY || document.documentElement.scrollTop;
-		// 如果页面在顶部，确保封面可见；如果不在顶部，确保封面不可见
-		if (scrollTop === 0) {
-			isCoverVisible = true;
-			coverScroll = 0;
-		} else {
-			isCoverVisible = false;
-			coverScroll = 0;
-		}
-		updateCoverState();
-	};
-
-	// 立即初始化封面状态
+	ensureFontStyle();
+	loadFonts();
 	initializeCoverState();
-
-	// 延迟检查一次，确保状态正确（处理浏览器恢复滚动位置的情况）
-	setTimeout(() => {
+	requestAnimationFrame(() => {
 		initializeCoverState();
-	}, 0);
-
-	// 再延迟检查一次，确保完全加载后状态正确
-	setTimeout(() => {
-		initializeCoverState();
-	}, 100);
-
-	// 初始化主题状态
+		requestAnimationFrame(initializeCoverState);
+	});
 	updateTheme();
 
-	// 监听显示封面事件
 	const handleShowCover = (event: CustomEvent<{ show: boolean }>) => {
-		if (event.detail.show) {
-			showCover();
-		}
+		if (event.detail.show) showCover();
 	};
 	window.addEventListener("showCover", handleShowCover as EventListener);
 
-	// 监听跳转到内容事件
-	const handleScrollToContent = () => {
-		scrollToContent();
-	};
+	const handleScrollToContent = () => scrollToContent();
 	window.addEventListener(
 		"scrollToContent",
 		handleScrollToContent as EventListener,
@@ -255,128 +289,88 @@ onMount(() => {
 	window.addEventListener("wheel", handleWheel, { passive: false });
 	window.addEventListener("scroll", handleScroll, { passive: true });
 
-	// 监听主题变化
-	const themeObserver = new MutationObserver(() => {
-		updateTheme();
-	});
+	const themeObserver = new MutationObserver(updateTheme);
 	themeObserver.observe(document.documentElement, {
 		attributes: true,
 		attributeFilter: ["class"],
 	});
 
-	// 封面页点击事件：跳转到内容页
 	const handleCoverClick = (e: MouseEvent) => {
-		if (isCoverVisible) {
-			// 检查点击的目标是否在导航栏或其他允许点击的区域
-			const target = e.target as HTMLElement;
-			const navbar = target.closest("#navbar");
-			const navMenuPanel = target.closest("#nav-menu-panel");
-			const displaySetting = target.closest("#display-setting");
-			const codeRainPanel = target.closest("#code-rain-panel");
-			const coverPageDownPanel = target.closest("#cover-page-down-panel");
-			const coverPagePanel = target.closest("#cover-page-panel");
-			const artisticArrow =
-				target.closest(".artistic-arrow-container") ||
-				target.closest(".artistic-arrow-btn") ||
-				target.closest(".artistic-arrow");
+		if (!isCoverVisible) return;
+		const targets = getClickTargets(e.target as HTMLElement);
+		if (isClickableArea(targets)) return;
 
-			// 如果点击的是导航栏、相关面板或艺术箭头，允许点击（不阻止默认行为）
-			if (
-				navbar ||
-				navMenuPanel ||
-				displaySetting ||
-				codeRainPanel ||
-				coverPageDownPanel ||
-				coverPagePanel ||
-				artisticArrow
-			) {
-				return;
-			}
-
-			// 否则跳转到内容页
-			scrollToContent();
-			e.preventDefault();
-			e.stopPropagation();
-			e.stopImmediatePropagation();
-		}
+		scrollToContent();
+		e.preventDefault();
+		e.stopPropagation();
+		e.stopImmediatePropagation();
 	};
-	document.addEventListener("click", handleCoverClick, true); // 使用捕获阶段
 
-	// 监听链接点击事件（排除封面页的点击）
+	let coverClickHandler: ((e: MouseEvent) => void) | null = null;
+
+	function setupCoverClickHandler() {
+		if (isCoverVisible && !coverClickHandler) {
+			coverClickHandler = handleCoverClick;
+			document.addEventListener("click", coverClickHandler, true);
+		} else if (!isCoverVisible && coverClickHandler) {
+			document.removeEventListener("click", coverClickHandler, true);
+			coverClickHandler = null;
+		}
+	}
+
+	setupCoverClickHandler();
+
+	$effect(() => {
+		setupCoverClickHandler();
+	});
+
 	const handleLinkClick = (e: MouseEvent) => {
-		// 如果点击的是封面页，不处理链接点击
-		if (isCoverVisible) {
-			const target = e.target as HTMLElement;
-			const navbar = target.closest("#navbar");
-			const navMenuPanel = target.closest("#nav-menu-panel");
-			const displaySetting = target.closest("#display-setting");
-			const codeRainPanel = target.closest("#code-rain-panel");
-			const coverPageDownPanel = target.closest("#cover-page-down-panel");
-			const coverPagePanel = target.closest("#cover-page-panel");
-			const artisticArrow =
-				target.closest(".artistic-arrow-container") ||
-				target.closest(".artistic-arrow-btn") ||
-				target.closest(".artistic-arrow");
+		const target = e.target as HTMLElement;
+		const link = target.closest("a");
+		if (!link?.href) return;
 
-			// 如果点击的是导航栏、相关面板或艺术箭头，允许点击
-			if (
-				navbar ||
-				navMenuPanel ||
-				displaySetting ||
-				codeRainPanel ||
-				coverPageDownPanel ||
-				coverPagePanel ||
-				artisticArrow
-			) {
-				// 检查是否是主页链接，如果是主页链接且当前在封面页，应该重置封面并跳转到内容
-				const link = target.closest("a");
-				if (link?.href) {
-					const url = new URL(link.href, window.location.href);
-					// 如果是主页链接（/），重置封面并跳转到内容
-					const currentPath = window.location.pathname;
-					const linkPath = url.pathname.replace(/\/$/, "") || "/";
-					if (
-						url.origin === window.location.origin &&
-						(linkPath === "/" || linkPath === currentPath.replace(/\/$/, ""))
-					) {
-						resetCover();
-						// 稍微滚动一下，确保离开顶部
-						window.scrollTo({ top: 1, behavior: "smooth" });
-					}
+		const linkHref = link.href;
+		if (!linkHref.startsWith(window.location.origin)) return;
+
+		if (isCoverVisible) {
+			const targets = getClickTargets(target);
+			if (isClickableArea(targets)) {
+				const linkUrl = new URL(linkHref);
+				const currentPath = window.location.pathname.replace(/\/$/, "") || "/";
+				const linkPath = linkUrl.pathname.replace(/\/$/, "") || "/";
+				if (linkPath === "/" || linkPath === currentPath) {
+					resetCover();
+					window.scrollTo({ top: 1, behavior: "smooth" });
 				}
 				return;
 			}
-
-			// 否则阻止链接点击
 			return;
 		}
 
-		const target = e.target as HTMLElement;
-		const link = target.closest("a");
-		if (link?.href) {
-			// 如果是内部链接，重置封面
-			const url = new URL(link.href, window.location.href);
-			if (url.origin === window.location.origin) {
-				resetCover();
-			}
-		}
+		resetCover();
 	};
 	document.addEventListener("click", handleLinkClick);
 
-	// 监听 swup 页面切换事件
+	const swupType = window.swup as
+		| { hooks?: { on: (event: string, callback: () => void) => void } }
+		| undefined;
+
 	const setupSwup = () => {
-		const swup = window.swup as
-			| { hooks?: { on: (event: string, callback: () => void) => void } }
-			| undefined;
-		if (swup?.hooks) {
-			swup.hooks.on("visit:start", resetCover);
+		if (swupType?.hooks) {
+			swupType.hooks.on("visit:start", resetCover);
+			swupType.hooks.on("page:view", () => {
+				ensureFontStyle();
+				if (isCoverVisible) {
+					updateCoverState();
+				}
+			});
+			swupType.hooks.on("content:replace", () => {
+				ensureFontStyle();
+			});
 		}
 	};
 
-	const swup = window.swup as
-		| { hooks?: { on: (event: string, callback: () => void) => void } }
-		| undefined;
-	if (swup?.hooks) {
+	if (swupType?.hooks) {
 		setupSwup();
 	} else {
 		window.addEventListener("swup:enable", setupSwup);
@@ -390,9 +384,14 @@ onMount(() => {
 		);
 		window.removeEventListener("wheel", handleWheel);
 		window.removeEventListener("scroll", handleScroll);
-		document.removeEventListener("click", handleCoverClick, true);
+		if (coverClickHandler) {
+			document.removeEventListener("click", coverClickHandler, true);
+		}
 		document.removeEventListener("click", handleLinkClick);
 		themeObserver.disconnect();
+		if (scrollRafId !== null) {
+			cancelAnimationFrame(scrollRafId);
+		}
 	};
 });
 </script>
@@ -406,13 +405,10 @@ onMount(() => {
 	style="transition: opacity 0.3s ease-out;"
 >
 	<div class="text-center relative">
-		<!-- 墨迹装饰元素 -->
 		<div class="ink-blot ink-blot-1"></div>
 		<div class="ink-blot ink-blot-2"></div>
 		<div class="ink-blot ink-blot-3"></div>
 		<div class="ink-blot ink-blot-4"></div>
-		
-		<!-- SVG 墨迹装饰 -->
 		<svg class="ink-svg ink-svg-1" viewBox="0 0 200 150">
 			<path
 				d="M50,75 Q30,50 20,30 Q10,20 15,10 Q20,5 30,15 Q40,25 50,40 Q60,55 70,65 Q80,75 90,80 Q100,85 110,90 Q120,95 130,100 Q140,105 150,110 Q160,115 170,120 Q180,125 185,130 Q190,135 195,140 Q200,145 195,150 Q190,155 180,150 Q170,145 160,140 Q150,135 140,130 Q130,125 120,120 Q110,115 100,110 Q90,105 80,100 Q70,95 60,90 Q50,85 45,80 Q40,75 50,75 Z"
@@ -427,26 +423,17 @@ onMount(() => {
 				opacity="0.08"
 			/>
 		</svg>
-		
-		<!-- 印章装饰 -->
 		<div class="seal seal-left"></div>
 		<div class="seal seal-right"></div>
-		
-		<!-- 主标题：玮指导的个人博客 -->
-		<h1
-			class="calligraphy-title relative z-10"
-		>
-			玮指导的个人博客
-		</h1>
-		
-		<!-- 副标题：两行文字，部分重叠 -->
+
+		<h1 class="calligraphy-title relative z-10">玮指导的个人博客</h1>
+
 		<div class="subtitle-container relative z-10 mt-6">
 			<div class="subtitle-line subtitle-line-1">胸中无一字</div>
 			<div class="subtitle-line subtitle-line-2">好作理塘诗</div>
 		</div>
 	</div>
-	
-	<!-- 艺术下箭头 -->
+
 	<div class="artistic-arrow-container absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
 		<button
 			aria-label="跳转到内容"
@@ -458,7 +445,6 @@ onMount(() => {
 			}}
 		>
 			<svg class="artistic-arrow" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-				<!-- 箭头主体 - 金色描边 -->
 				<path
 					d="M50 20 L50 60 M30 50 L50 70 L70 50"
 					stroke="#ffd700"
@@ -468,7 +454,6 @@ onMount(() => {
 					stroke-linejoin="round"
 					class="arrow-path-gold"
 				/>
-				<!-- 箭头主体 - 白色填充 -->
 				<path
 					d="M50 20 L50 60 M30 50 L50 70 L70 50"
 					stroke="#ffffff"
@@ -478,7 +463,6 @@ onMount(() => {
 					stroke-linejoin="round"
 					class="arrow-path"
 				/>
-				<!-- 装饰线条 -->
 				<path
 					d="M20 50 Q50 30 50 50 Q50 70 80 50"
 					stroke="#ffd700"
@@ -496,9 +480,6 @@ onMount(() => {
 
 
 <style>
-	/* 自定义字体声明 - 通过 JavaScript 动态创建 */
-
-	/* 行草字体样式 - 黑边白字 */
 	.calligraphy-title {
 		font-size: 5rem;
 		font-weight: 900;
@@ -509,57 +490,38 @@ onMount(() => {
 		position: relative;
 		display: inline-block;
 		padding: 0.5em 1em;
-		/* 黑色描边效果 - 使用多层阴影模拟描边 */
 		text-shadow: 
-			/* 描边效果 - 8个方向 */
 			-2px -2px 0 #000000,
 			2px -2px 0 #000000,
 			-2px 2px 0 #000000,
 			2px 2px 0 #000000,
-			-1px -1px 0 #000000,
-			1px -1px 0 #000000,
-			-1px 1px 0 #000000,
-			1px 1px 0 #000000,
-			/* 外层描边 */
 			-3px -3px 0 #000000,
 			3px -3px 0 #000000,
 			-3px 3px 0 #000000,
 			3px 3px 0 #000000,
-			/* 深度阴影 */
-			4px 4px 8px rgba(0, 0, 0, 0.5),
-			6px 6px 12px rgba(0, 0, 0, 0.4);
-		/* 3D 透视效果 */
+			0 0 8px rgba(0, 0, 0, 0.6),
+			0 0 16px rgba(0, 0, 0, 0.4);
+		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 		transform: perspective(1000px) rotateX(2deg);
-		/* 动画 */
 		animation: titleFadeIn 1.5s ease-out, titleFloat 4s ease-in-out infinite 1.5s, titleBreathe 3s ease-in-out infinite 2s;
-		/* 增强发光 */
-		filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 8px rgba(0, 0, 0, 0.3));
 	}
 
 	:global(.dark) .calligraphy-title {
 		color: #ffffff;
-		text-shadow: 
-			/* 描边效果 - 8个方向 */
+		text-shadow:
 			-2px -2px 0 #000000,
 			2px -2px 0 #000000,
 			-2px 2px 0 #000000,
 			2px 2px 0 #000000,
-			-1px -1px 0 #000000,
-			1px -1px 0 #000000,
-			-1px 1px 0 #000000,
-			1px 1px 0 #000000,
-			/* 外层描边 */
 			-3px -3px 0 #000000,
 			3px -3px 0 #000000,
 			-3px 3px 0 #000000,
 			3px 3px 0 #000000,
-			/* 深度阴影 */
-			4px 4px 8px rgba(0, 0, 0, 0.5),
-			6px 6px 12px rgba(0, 0, 0, 0.4);
-		filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 8px rgba(0, 0, 0, 0.3));
+			0 0 8px rgba(0, 0, 0, 0.6),
+			0 0 16px rgba(0, 0, 0, 0.4);
+		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 	}
 
-	/* 文字淡入动画 */
 	@keyframes titleFadeIn {
 		from {
 			opacity: 0;
@@ -571,7 +533,6 @@ onMount(() => {
 		}
 	}
 
-	/* 文字浮动动画 */
 	@keyframes titleFloat {
 		0%, 100% {
 			transform: perspective(1000px) rotateX(2deg) translateY(0);
@@ -581,7 +542,6 @@ onMount(() => {
 		}
 	}
 
-	/* 文字呼吸动画 */
 	@keyframes titleBreathe {
 		0%, 100% {
 			transform: perspective(1000px) rotateX(2deg) scale(1);
@@ -591,7 +551,6 @@ onMount(() => {
 		}
 	}
 
-	/* 墨迹装饰元素 */
 	.ink-blot {
 		position: absolute;
 		opacity: 0.12;
@@ -657,7 +616,6 @@ onMount(() => {
 		}
 	}
 
-	/* SVG 墨迹装饰 */
 	.ink-svg {
 		position: absolute;
 		pointer-events: none;
@@ -703,7 +661,6 @@ onMount(() => {
 		}
 	}
 
-	/* 印章装饰 */
 	.seal {
 		position: absolute;
 		width: 80px;
@@ -759,7 +716,6 @@ onMount(() => {
 		}
 	}
 
-	/* 宣纸纹理背景效果 */
 	.calligraphy-title::before {
 		content: "";
 		position: absolute;
@@ -783,7 +739,6 @@ onMount(() => {
 			radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.005) 0%, transparent 50%);
 	}
 
-	/* 副标题样式 */
 	.subtitle-container {
 		display: flex;
 		flex-direction: column;
@@ -796,58 +751,48 @@ onMount(() => {
 		font-family: "AnJingChenXingShuFanTi", "STXingkai", "Xingkai SC", "KaiTi", "楷体", serif;
 		font-size: 4rem;
 		font-weight: normal;
-		color: #ffffff; /* 白色 */
+		color: #ffffff;
 		line-height: 1.2;
 		position: relative;
 		display: inline-block;
-		/* 黑色描边效果 */
 		text-shadow: 
 			-2px -2px 0 #000000,
 			2px -2px 0 #000000,
 			-2px 2px 0 #000000,
 			2px 2px 0 #000000,
-			-1px -1px 0 #000000,
-			1px -1px 0 #000000,
-			-1px 1px 0 #000000,
-			1px 1px 0 #000000,
 			-3px -3px 0 #000000,
 			3px -3px 0 #000000,
 			-3px 3px 0 #000000,
 			3px 3px 0 #000000;
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 		white-space: nowrap;
 	}
 
 	.subtitle-line-1 {
-		/* 第一行稍微靠左 */
 		transform: translateX(-22%);
 		z-index: 2;
 	}
 
 	.subtitle-line-2 {
-		/* 第二行稍微靠右，与第一行部分重叠 */
 		transform: translateX(22%);
-		margin-top: -0.3em; /* 让两行更靠近，形成重叠效果 */
+		margin-top: -0.3em;
 		z-index: 1;
 	}
 
 	:global(.dark) .subtitle-line {
-		color: #ffffff; /* 白色 */
+		color: #ffffff;
 		text-shadow: 
 			-2px -2px 0 #000000,
 			2px -2px 0 #000000,
 			-2px 2px 0 #000000,
 			2px 2px 0 #000000,
-			-1px -1px 0 #000000,
-			1px -1px 0 #000000,
-			-1px 1px 0 #000000,
-			1px 1px 0 #000000,
 			-3px -3px 0 #000000,
 			3px -3px 0 #000000,
 			-3px 3px 0 #000000,
 			3px 3px 0 #000000;
+		filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
 	}
 
-	/* 艺术下箭头样式 */
 	.artistic-arrow-container {
 		pointer-events: auto;
 		cursor: pointer;
@@ -882,21 +827,21 @@ onMount(() => {
 	}
 
 	.arrow-path-gold {
-		stroke: #ffd700; /* 金色描边 */
+		stroke: #ffd700;
 		stroke-width: 4;
 		filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 6px rgba(255, 215, 0, 0.4));
 		animation: arrowPulse 2s ease-in-out infinite;
 	}
 
 	.arrow-path {
-		stroke: #ffffff; /* 白色主体 */
+		stroke: #ffffff;
 		stroke-width: 3;
 		filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
 		animation: arrowPulse 2s ease-in-out infinite;
 	}
 
 	.arrow-decoration {
-		stroke: #ffd700; /* 金色 */
+		stroke: #ffd700;
 		stroke-width: 1.5;
 		opacity: 0.6;
 		animation: arrowFade 2s ease-in-out infinite;
@@ -936,21 +881,19 @@ onMount(() => {
 	}
 
 	:global(.dark) .arrow-path-gold {
-		stroke: #ffd700; /* 金色描边 */
+		stroke: #ffd700;
 		filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 6px rgba(255, 215, 0, 0.4));
 	}
 
 	:global(.dark) .arrow-path {
-		stroke: #ffffff; /* 白色主体 */
+		stroke: #ffffff;
 		filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
 	}
 
 	:global(.dark) .arrow-decoration {
-		stroke: #ffd700; /* 金色 */
+		stroke: #ffd700;
 		filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.6));
 	}
-
-	/* 响应式设计 */
 	@media (max-width: 768px) {
 		.calligraphy-title {
 			font-size: 3rem;
