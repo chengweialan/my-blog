@@ -77,8 +77,8 @@ export const profileConfig: ProfileConfig = {
 		{
 			name: "Email",
 			icon: "material-symbols:mail-sharp",
-			url: "mailto:chengweialan@gmail.com", 
-		}
+			url: "mailto:chengweialan@gmail.com",
+		},
 	],
 };
 
