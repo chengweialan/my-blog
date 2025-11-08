@@ -72,14 +72,14 @@ export type ProfileConfig = {
 };
 
 export type CommentConfig = {
-    twikoo?: TwikooConfig
-  }
+	twikoo?: TwikooConfig;
+};
 
-  type TwikooConfig = {
-    envId: string
-    region?: string
-    lang?: string
-  }
+type TwikooConfig = {
+	envId: string;
+	region?: string;
+	lang?: string;
+};
 
 export type LicenseConfig = {
 	enable: boolean;

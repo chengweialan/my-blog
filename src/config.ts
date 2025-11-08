@@ -97,6 +97,6 @@ export const expressiveCodeConfig: ExpressiveCodeConfig = {
 
 export const commentConfig: CommentConfig = {
 	twikoo: {
-	  envId: 'https://chengweifuwari.netlify.app/.netlify/functions/twikoo',
+		envId: "https://chengweifuwari.netlify.app/.netlify/functions/twikoo",
 	},
-  }
+};
