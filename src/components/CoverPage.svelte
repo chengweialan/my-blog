@@ -115,28 +115,95 @@ function showCover() {
 	updateCoverState();
 	// 滚动到页面顶部
 	window.scrollTo({ top: 0, behavior: "smooth" });
+
+	// 确保字体样式存在（处理页面切换后字体丢失的情况）
+	const fontStyleId = "cover-page-fonts";
+	let fontStyle = document.getElementById(fontStyleId) as HTMLStyleElement;
+	if (!fontStyle) {
+		fontStyle = document.createElement("style");
+		fontStyle.id = fontStyleId;
+		fontStyle.textContent = `
+			@font-face {
+				font-family: "Xingkai";
+				src: url("${fontUrl}") format("truetype");
+				font-weight: normal;
+				font-style: normal;
+				font-display: swap;
+			}
+			@font-face {
+				font-family: "AnJingChenXingShuFanTi";
+				src: url("${subtitleFontUrl}") format("truetype");
+				font-weight: normal;
+				font-style: normal;
+				font-display: swap;
+			}
+		`;
+		document.head.appendChild(fontStyle);
+	} else {
+		// 如果字体样式已存在，更新URL（处理页面切换的情况）
+		fontStyle.textContent = `
+			@font-face {
+				font-family: "Xingkai";
+				src: url("${fontUrl}") format("truetype");
+				font-weight: normal;
+				font-style: normal;
+				font-display: swap;
+			}
+			@font-face {
+				font-family: "AnJingChenXingShuFanTi";
+				src: url("${subtitleFontUrl}") format("truetype");
+				font-weight: normal;
+				font-style: normal;
+				font-display: swap;
+			}
+		`;
+	}
 }
 
 onMount(() => {
-	// 动态创建字体样式
-	const fontStyle = document.createElement("style");
-	fontStyle.textContent = `
-		@font-face {
-			font-family: "Xingkai";
-			src: url("${fontUrl}") format("truetype");
-			font-weight: normal;
-			font-style: normal;
-			font-display: swap;
-		}
-		@font-face {
-			font-family: "AnJingChenXingShuFanTi";
-			src: url("${subtitleFontUrl}") format("truetype");
-			font-weight: normal;
-			font-style: normal;
-			font-display: swap;
-		}
-	`;
-	document.head.appendChild(fontStyle);
+	// 动态创建字体样式 - 使用ID确保不会重复创建
+	const fontStyleId = "cover-page-fonts";
+	let fontStyle = document.getElementById(fontStyleId) as HTMLStyleElement;
+
+	if (!fontStyle) {
+		fontStyle = document.createElement("style");
+		fontStyle.id = fontStyleId;
+		fontStyle.textContent = `
+			@font-face {
+				font-family: "Xingkai";
+				src: url("${fontUrl}") format("truetype");
+				font-weight: normal;
+				font-style: normal;
+				font-display: swap;
+			}
+			@font-face {
+				font-family: "AnJingChenXingShuFanTi";
+				src: url("${subtitleFontUrl}") format("truetype");
+				font-weight: normal;
+				font-style: normal;
+				font-display: swap;
+			}
+		`;
+		document.head.appendChild(fontStyle);
+	} else {
+		// 如果字体样式已存在，更新URL（处理页面切换的情况）
+		fontStyle.textContent = `
+			@font-face {
+				font-family: "Xingkai";
+				src: url("${fontUrl}") format("truetype");
+				font-weight: normal;
+				font-style: normal;
+				font-display: swap;
+			}
+			@font-face {
+				font-family: "AnJingChenXingShuFanTi";
+				src: url("${subtitleFontUrl}") format("truetype");
+				font-weight: normal;
+				font-style: normal;
+				font-display: swap;
+			}
+		`;
+	}
 
 	// 初始化封面状态 - 检查页面是否在顶部
 	const initializeCoverState = () => {
@@ -208,9 +275,10 @@ onMount(() => {
 			const codeRainPanel = target.closest("#code-rain-panel");
 			const coverPageDownPanel = target.closest("#cover-page-down-panel");
 			const coverPagePanel = target.closest("#cover-page-panel");
-			const artisticArrow = target.closest(".artistic-arrow-container") || 
-			                      target.closest(".artistic-arrow-btn") ||
-			                      target.closest(".artistic-arrow");
+			const artisticArrow =
+				target.closest(".artistic-arrow-container") ||
+				target.closest(".artistic-arrow-btn") ||
+				target.closest(".artistic-arrow");
 
 			// 如果点击的是导航栏、相关面板或艺术箭头，允许点击（不阻止默认行为）
 			if (
@@ -245,9 +313,10 @@ onMount(() => {
 			const codeRainPanel = target.closest("#code-rain-panel");
 			const coverPageDownPanel = target.closest("#cover-page-down-panel");
 			const coverPagePanel = target.closest("#cover-page-panel");
-			const artisticArrow = target.closest(".artistic-arrow-container") || 
-			                      target.closest(".artistic-arrow-btn") ||
-			                      target.closest(".artistic-arrow");
+			const artisticArrow =
+				target.closest(".artistic-arrow-container") ||
+				target.closest(".artistic-arrow-btn") ||
+				target.closest(".artistic-arrow");
 
 			// 如果点击的是导航栏、相关面板或艺术箭头，允许点击
 			if (
@@ -259,6 +328,22 @@ onMount(() => {
 				coverPagePanel ||
 				artisticArrow
 			) {
+				// 检查是否是主页链接，如果是主页链接且当前在封面页，应该重置封面并跳转到内容
+				const link = target.closest("a");
+				if (link?.href) {
+					const url = new URL(link.href, window.location.href);
+					// 如果是主页链接（/），重置封面并跳转到内容
+					const currentPath = window.location.pathname;
+					const linkPath = url.pathname.replace(/\/$/, "") || "/";
+					if (
+						url.origin === window.location.origin &&
+						(linkPath === "/" || linkPath === currentPath.replace(/\/$/, ""))
+					) {
+						resetCover();
+						// 稍微滚动一下，确保离开顶部
+						window.scrollTo({ top: 1, behavior: "smooth" });
+					}
+				}
 				return;
 			}
 
