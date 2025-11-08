@@ -161,6 +161,9 @@
   z-index: 5;
   transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
+  /* Ensure seamless connection with content below */
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .hero-cover-container.hero-cover-minimized {
