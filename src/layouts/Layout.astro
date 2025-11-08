@@ -5,6 +5,8 @@ import "@fontsource/roboto/700.css";
 
 import CodeRain from "@components/CodeRain.svelte";
 import ConfigCarrier from "@components/ConfigCarrier.astro";
+import CoverPage from "@components/CoverPage.svelte";
+import ScrollEffect from "@components/ScrollEffect.svelte";
 import { profileConfig, siteConfig } from "@/config";
 import {
 	AUTO_MODE,
@@ -154,6 +156,8 @@ const bannerOffset =
 	>
 		<ConfigCarrier></ConfigCarrier>
 		<CodeRain client:only="svelte"></CodeRain>
+		<CoverPage client:only="svelte"></CoverPage>
+		<ScrollEffect client:only="svelte"></ScrollEffect>
 		<slot />
 
 		<!-- increase the page height during page transition to prevent the scrolling animation from jumping -->

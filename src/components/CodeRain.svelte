@@ -21,6 +21,8 @@ let animationId: number | null = null;
 let enabled = $state(false);
 let isDark = $state(false);
 let backgroundOpacity = $state(0);
+let scrollOpacity = $state(0.3); // 滚动时的背景图片透明度
+let isCoverVisible = $state(false); // 封面是否可见
 
 // 字符集：字母和数字
 const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -139,6 +141,46 @@ function handleResize() {
 	initCanvas();
 }
 
+// 处理封面滚动事件
+function handleCoverScroll(event: CustomEvent<{ progress: number }>) {
+	if (enabled) return; // 代码雨打开时不处理
+
+	const progress = event.detail.progress;
+	isCoverVisible = progress === 1; // 封面完全可见时 progress = 1
+
+	// 封面状态时，背景图片始终完全不透明（1.0）
+	if (isCoverVisible) {
+		scrollOpacity = 1.0;
+		backgroundOpacity = 1.0;
+	} else {
+		// 非封面状态时，根据滚动位置设置透明度
+		const scrollTop = window.scrollY || document.documentElement.scrollTop;
+		if (scrollTop > 0) {
+			scrollOpacity = 0.3;
+			backgroundOpacity = 0.3;
+		} else {
+			// 在页面顶部但不在封面状态时，背景半透明
+			scrollOpacity = 0.3;
+			backgroundOpacity = 0.3;
+		}
+	}
+}
+
+// 处理普通滚动事件
+function handleScroll() {
+	if (enabled) return; // 代码雨打开时不处理滚动
+
+	const scrollTop = window.scrollY || document.documentElement.scrollTop;
+
+	// 浏览内容页面时，背景始终半透明（0.3）
+	if (scrollTop > 0) {
+		// 不在页面顶部时，背景半透明
+		scrollOpacity = 0.3;
+		backgroundOpacity = 0.3;
+	}
+	// 在页面顶部时，背景透明度由封面滚动事件控制
+}
+
 // 监听 localStorage 变化
 function checkEnabled() {
 	const stored = localStorage.getItem("codeRainEnabled");
@@ -150,7 +192,16 @@ function checkEnabled() {
 		if (enabled) {
 			animateOpacity(0); // 代码雨打开，隐藏背景图片
 		} else {
-			animateOpacity(0.3); // 代码雨关闭，显示背景图片（半透明）
+			// 代码雨关闭，根据封面状态和滚动位置设置背景图片透明度
+			if (isCoverVisible) {
+				// 在封面状态时，背景图片应该完全不透明
+				animateOpacity(1.0);
+			} else {
+				// 不在封面状态时，根据滚动位置设置透明度
+				handleScroll(); // 更新滚动位置
+				const targetOpacity = scrollOpacity;
+				animateOpacity(targetOpacity);
+			}
 		}
 	}
 }
@@ -173,8 +224,19 @@ onMount(() => {
 	if (enabled) {
 		backgroundOpacity = 0;
 	} else {
+		const initialScrollTop =
+			window.scrollY || document.documentElement.scrollTop;
+		// 浏览内容页面时，背景始终半透明（0.3）
 		backgroundOpacity = 0.3;
+		scrollOpacity = 0.3;
 	}
+
+	// 监听封面滚动事件
+	window.addEventListener("coverScroll", handleCoverScroll as EventListener);
+
+	// 在所有页面监听滚动
+	handleScroll();
+	window.addEventListener("scroll", handleScroll, { passive: true });
 
 	window.addEventListener("resize", handleResize);
 	window.addEventListener("storage", checkEnabled);
@@ -187,12 +249,17 @@ onMount(() => {
 		const wasDark = isDark;
 		updateTheme();
 		// 如果主题改变且代码雨关闭，触发淡入淡出
-		if (wasDark !== isDark && !enabled && backgroundOpacity > 0) {
-			// 淡出当前图片，然后淡入新图片
-			animateOpacity(0);
-			setTimeout(() => {
-				animateOpacity(0.3);
-			}, 250);
+		if (wasDark !== isDark && !enabled) {
+			// 根据封面状态设置背景图片透明度
+			if (isCoverVisible) {
+				// 在封面状态时，背景图片应该始终完全不透明
+				// 不需要淡入淡出，直接设置为1.0
+				backgroundOpacity = 1.0;
+				scrollOpacity = 1.0;
+			} else {
+				// 不在封面状态时，保持当前透明度
+				// 不需要淡入淡出，因为图片切换是瞬时的
+			}
 		}
 	});
 
@@ -205,6 +272,11 @@ onMount(() => {
 		window.removeEventListener("resize", handleResize);
 		window.removeEventListener("storage", checkEnabled);
 		window.removeEventListener("codeRainToggle", checkEnabled);
+		window.removeEventListener(
+			"coverScroll",
+			handleCoverScroll as EventListener,
+		);
+		window.removeEventListener("scroll", handleScroll);
 		themeObserver.disconnect();
 	};
 });
