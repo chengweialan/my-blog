@@ -3,6 +3,7 @@ import BackToTop from "@components/control/BackToTop.astro";
 import Footer from "@components/Footer.astro";
 import Navbar from "@components/Navbar.astro";
 import SideBar from "@components/widget/SideBar.astro";
+import HeroCover from "@components/HeroCover.astro";
 import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
 import ImageWrapper from "../components/misc/ImageWrapper.astro";
@@ -12,7 +13,9 @@ import {
 	BANNER_HEIGHT,
 	BANNER_HEIGHT_EXTEND,
 	MAIN_PANEL_OVERLAPS_BANNER_HEIGHT,
+	HERO_COVER_HEIGHT,
 } from "../constants/constants";
+import { pathsEqual, url } from "../utils/url-utils";
 import Layout from "./Layout.astro";
 
 interface Props {
@@ -36,12 +39,22 @@ const hasBannerCredit =
 	siteConfig.banner.enable && siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
 
-const mainPanelTop = siteConfig.banner.enable
+const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
+const showHeroCover = siteConfig.heroCover.enable && 
+	(siteConfig.heroCover.showOnHomeOnly !== false) && 
+	isHomePage;
+
+const mainPanelTop = showHeroCover
+	? `calc(${HERO_COVER_HEIGHT}vh)`
+	: siteConfig.banner.enable
 	? `calc(${BANNER_HEIGHT}vh - ${MAIN_PANEL_OVERLAPS_BANNER_HEIGHT}rem)`
 	: "5.5rem";
 ---
 
 <Layout title={title} banner={banner} description={description} lang={lang} setOGTypeArticle={setOGTypeArticle}>
+
+<!-- Hero Cover (only on homepage) -->
+{showHeroCover && <HeroCover />}
 
 <!-- Navbar -->
 <slot slot="head" name="head"></slot>

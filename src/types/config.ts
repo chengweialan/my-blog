@@ -30,6 +30,11 @@ export type SiteConfig = {
 			url?: string;
 		};
 	};
+	heroCover: {
+		enable: boolean;
+		image?: string;
+		showOnHomeOnly?: boolean;
+	};
 	toc: {
 		enable: boolean;
 		depth: 1 | 2 | 3;

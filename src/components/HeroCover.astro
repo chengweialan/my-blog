@@ -1,0 +1,68 @@
+---
+import { Icon } from "astro-icon/components";
+import { profileConfig, siteConfig } from "../config";
+import ImageWrapper from "./misc/ImageWrapper.astro";
+
+const hasImage = siteConfig.heroCover.image && siteConfig.heroCover.image.trim() !== "";
+---
+
+<div id="hero-cover" class="hero-cover-container">
+	<!-- Background layer with image placeholder -->
+	<div class="hero-cover-background">
+		{hasImage ? (
+			<ImageWrapper
+				src={siteConfig.heroCover.image!}
+				alt="Hero cover background"
+				class="hero-cover-image"
+				position="center"
+			/>
+		) : (
+			<div class="hero-cover-placeholder"></div>
+		)}
+		<div class="hero-cover-overlay"></div>
+	</div>
+
+	<!-- Content layer with blog information -->
+	<div class="hero-cover-content">
+		<div class="hero-cover-info">
+			<!-- Author avatar -->
+			{profileConfig.avatar && (
+				<div class="hero-cover-avatar">
+					<ImageWrapper
+						src={profileConfig.avatar}
+						alt={`${profileConfig.name} avatar`}
+						class="hero-avatar-image"
+					/>
+				</div>
+			)}
+
+			<!-- Blog title -->
+			<h1 class="hero-cover-title">{siteConfig.title}</h1>
+
+			<!-- Blog subtitle -->
+			<p class="hero-cover-subtitle">{siteConfig.subtitle}</p>
+
+			<!-- Author bio -->
+			{profileConfig.bio && (
+				<p class="hero-cover-bio">{profileConfig.bio}</p>
+			)}
+		</div>
+	</div>
+
+	<!-- Scroll indicator -->
+	<button 
+		class="hero-cover-scroll-indicator"
+		aria-label="Scroll down"
+		onclick={() => {
+			const contentStart = document.getElementById('main-grid') || document.querySelector('main');
+			if (contentStart) {
+				contentStart.scrollIntoView({ behavior: 'smooth', block: 'start' });
+			} else {
+				window.scrollBy({ top: window.innerHeight, behavior: 'smooth' });
+			}
+		}}
+	>
+		<Icon name="material-symbols:keyboard-arrow-down" class="scroll-arrow" />
+	</button>
+</div>
+
