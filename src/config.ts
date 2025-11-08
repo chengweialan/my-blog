@@ -54,30 +54,30 @@ export const navBarConfig: NavBarConfig = {
 
 export const profileConfig: ProfileConfig = {
 	avatar: "assets/images/demo-avatar.png", // Relative to the /src directory. Relative to the /public directory if it starts with '/'
-	name: "chengwei",
-	bio: "none",
+	name: "玮指导",
+	bio: "胸中无一字，好作理塘诗。",
 	links: [
 		{
-			name: "Twitter",
-			icon: "fa6-brands:twitter", // Visit https://icones.js.org/ for icon codes
+			name: "Homepage",
+			icon: "simple-icons:homepage", // Visit https://icones.js.org/ for icon codes
 			// You will need to install the corresponding icon set if it's not already included
 			// `pnpm add @iconify-json/<icon-set-name>`
-			url: "https://twitter.com",
+			url: "https://chengweialan.github.io",
 		},
 		{
-			name: "Steam",
-			icon: "fa6-brands:steam",
-			url: "https://store.steampowered.com",
+			name: "Google Scholar",
+			icon: "academicons:google-scholar",
+			url: "https://scholar.google.com/citations?hl=en&user=d9ANIlkAAAAJ",
 		},
 		{
 			name: "GitHub",
 			icon: "fa6-brands:github",
-			url: "https://github.com/saicaca/fuwari",
+			url: "https://github.com/chengweialan",
 		},
 		{
 			name: "Email",
 			icon: "material-symbols:mail-sharp",
-			url: "mailto:chengweialan@gmail.com",  // ✅ 添加 mailto: 协议
+			url: "mailto:chengweialan@gmail.com", 
 		}
 	],
 };
