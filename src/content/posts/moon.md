@@ -1,10 +1,10 @@
 ---
-title: 惜月-中秋作
+title: 惜月
 published: 2025-11-07
 description: '岁岁中秋诗便作，年年此夜咏成篇。'
 image: 'images/moon.jpg'
 tags: ["文章", "诗词"]
-category: ''
+category: '文学'
 draft: false 
 lang: ''
 ---
