@@ -8,7 +8,7 @@ import type {
 import { LinkPreset } from "./types/config";
 
 export const siteConfig: SiteConfig = {
-	title: "理塘玮指导的博客",
+	title: "玮指导的个人博客",
 	subtitle: "胸中无一字，好作理塘诗。",
 	lang: "zh_CN", // Language code, e.g. 'en', 'zh_CN', 'ja', etc.
 	themeColor: {
