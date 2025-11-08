@@ -138,8 +138,32 @@ onMount(() => {
 	`;
 	document.head.appendChild(fontStyle);
 
-	// 初始化封面状态
-	updateCoverState();
+	// 初始化封面状态 - 检查页面是否在顶部
+	const initializeCoverState = () => {
+		const scrollTop = window.scrollY || document.documentElement.scrollTop;
+		// 如果页面在顶部，确保封面可见；如果不在顶部，确保封面不可见
+		if (scrollTop === 0) {
+			isCoverVisible = true;
+			coverScroll = 0;
+		} else {
+			isCoverVisible = false;
+			coverScroll = 0;
+		}
+		updateCoverState();
+	};
+
+	// 立即初始化封面状态
+	initializeCoverState();
+
+	// 延迟检查一次，确保状态正确（处理浏览器恢复滚动位置的情况）
+	setTimeout(() => {
+		initializeCoverState();
+	}, 0);
+
+	// 再延迟检查一次，确保完全加载后状态正确
+	setTimeout(() => {
+		initializeCoverState();
+	}, 100);
 
 	// 初始化主题状态
 	updateTheme();
@@ -184,15 +208,19 @@ onMount(() => {
 			const codeRainPanel = target.closest("#code-rain-panel");
 			const coverPageDownPanel = target.closest("#cover-page-down-panel");
 			const coverPagePanel = target.closest("#cover-page-panel");
+			const artisticArrow = target.closest(".artistic-arrow-container") || 
+			                      target.closest(".artistic-arrow-btn") ||
+			                      target.closest(".artistic-arrow");
 
-			// 如果点击的是导航栏或相关面板，允许点击（不阻止默认行为）
+			// 如果点击的是导航栏、相关面板或艺术箭头，允许点击（不阻止默认行为）
 			if (
 				navbar ||
 				navMenuPanel ||
 				displaySetting ||
 				codeRainPanel ||
 				coverPageDownPanel ||
-				coverPagePanel
+				coverPagePanel ||
+				artisticArrow
 			) {
 				return;
 			}
@@ -217,15 +245,19 @@ onMount(() => {
 			const codeRainPanel = target.closest("#code-rain-panel");
 			const coverPageDownPanel = target.closest("#cover-page-down-panel");
 			const coverPagePanel = target.closest("#cover-page-panel");
+			const artisticArrow = target.closest(".artistic-arrow-container") || 
+			                      target.closest(".artistic-arrow-btn") ||
+			                      target.closest(".artistic-arrow");
 
-			// 如果点击的是导航栏或相关面板，允许点击
+			// 如果点击的是导航栏、相关面板或艺术箭头，允许点击
 			if (
 				navbar ||
 				navMenuPanel ||
 				displaySetting ||
 				codeRainPanel ||
 				coverPageDownPanel ||
-				coverPagePanel
+				coverPagePanel ||
+				artisticArrow
 			) {
 				return;
 			}
@@ -329,6 +361,51 @@ onMount(() => {
 		</div>
 	</div>
 	
+	<!-- 艺术下箭头 -->
+	<div class="artistic-arrow-container absolute bottom-8 left-1/2 transform -translate-x-1/2 z-10">
+		<button
+			aria-label="跳转到内容"
+			class="artistic-arrow-btn"
+			onclick={(e) => {
+				e.preventDefault();
+				e.stopPropagation();
+				scrollToContent();
+			}}
+		>
+			<svg class="artistic-arrow" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+				<!-- 箭头主体 - 金色描边 -->
+				<path
+					d="M50 20 L50 60 M30 50 L50 70 L70 50"
+					stroke="#ffd700"
+					stroke-width="4"
+					fill="none"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					class="arrow-path-gold"
+				/>
+				<!-- 箭头主体 - 白色填充 -->
+				<path
+					d="M50 20 L50 60 M30 50 L50 70 L70 50"
+					stroke="#ffffff"
+					stroke-width="3"
+					fill="none"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					class="arrow-path"
+				/>
+				<!-- 装饰线条 -->
+				<path
+					d="M20 50 Q50 30 50 50 Q50 70 80 50"
+					stroke="#ffd700"
+					stroke-width="1.5"
+					fill="none"
+					stroke-linecap="round"
+					opacity="0.6"
+					class="arrow-decoration"
+				/>
+			</svg>
+		</button>
+	</div>
 </div>
 
 
@@ -685,6 +762,109 @@ onMount(() => {
 			3px 3px 0 #000000;
 	}
 
+	/* 艺术下箭头样式 */
+	.artistic-arrow-container {
+		pointer-events: auto;
+		cursor: pointer;
+	}
+
+	.artistic-arrow-btn {
+		background: none;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: transform 0.3s ease;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.artistic-arrow-btn:hover {
+		transform: scale(1.1);
+	}
+
+	.artistic-arrow-btn:active {
+		transform: scale(0.95);
+	}
+
+	.artistic-arrow {
+		width: 60px;
+		height: 60px;
+		color: #ffffff;
+		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+		animation: arrowFloat 2s ease-in-out infinite;
+	}
+
+	.arrow-path-gold {
+		stroke: #ffd700; /* 金色描边 */
+		stroke-width: 4;
+		filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 6px rgba(255, 215, 0, 0.4));
+		animation: arrowPulse 2s ease-in-out infinite;
+	}
+
+	.arrow-path {
+		stroke: #ffffff; /* 白色主体 */
+		stroke-width: 3;
+		filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
+		animation: arrowPulse 2s ease-in-out infinite;
+	}
+
+	.arrow-decoration {
+		stroke: #ffd700; /* 金色 */
+		stroke-width: 1.5;
+		opacity: 0.6;
+		animation: arrowFade 2s ease-in-out infinite;
+		filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.6));
+	}
+
+	@keyframes arrowFloat {
+		0%, 100% {
+			transform: translateY(0);
+		}
+		50% {
+			transform: translateY(-10px);
+		}
+	}
+
+	@keyframes arrowPulse {
+		0%, 100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.7;
+		}
+	}
+
+	@keyframes arrowFade {
+		0%, 100% {
+			opacity: 0.6;
+		}
+		50% {
+			opacity: 0.3;
+		}
+	}
+
+	:global(.dark) .artistic-arrow {
+		color: #ffffff;
+		filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+	}
+
+	:global(.dark) .arrow-path-gold {
+		stroke: #ffd700; /* 金色描边 */
+		filter: drop-shadow(0 0 3px rgba(255, 215, 0, 0.8)) drop-shadow(0 0 6px rgba(255, 215, 0, 0.4));
+	}
+
+	:global(.dark) .arrow-path {
+		stroke: #ffffff; /* 白色主体 */
+		filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
+	}
+
+	:global(.dark) .arrow-decoration {
+		stroke: #ffd700; /* 金色 */
+		filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.6));
+	}
+
 	/* 响应式设计 */
 	@media (max-width: 768px) {
 		.calligraphy-title {
@@ -723,6 +903,11 @@ onMount(() => {
 		.seal::before {
 			font-size: 1.5rem;
 		}
+
+		.artistic-arrow {
+			width: 50px;
+			height: 50px;
+		}
 	}
 
 	@media (min-width: 769px) and (max-width: 1024px) {
@@ -746,6 +931,11 @@ onMount(() => {
 
 		.seal::before {
 			font-size: 2rem;
+		}
+
+		.artistic-arrow {
+			width: 55px;
+			height: 55px;
 		}
 	}
 
