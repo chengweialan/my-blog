@@ -40,12 +40,10 @@ const hasImage = siteConfig.heroCover.image && siteConfig.heroCover.image.trim()
 			<h1 class="hero-cover-title">{siteConfig.title}</h1>
 
 			<!-- Blog subtitle -->
-			{siteConfig.subtitle && (
-				<p class="hero-cover-subtitle">{siteConfig.subtitle}</p>
-			)}
+			<p class="hero-cover-subtitle">{siteConfig.subtitle}</p>
 
-			<!-- Author bio (only show if different from subtitle) -->
-			{profileConfig.bio && profileConfig.bio !== siteConfig.subtitle && (
+			<!-- Author bio -->
+			{profileConfig.bio && (
 				<p class="hero-cover-bio">{profileConfig.bio}</p>
 			)}
 		</div>

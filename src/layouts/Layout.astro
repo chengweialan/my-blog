@@ -390,6 +390,19 @@ const setup = () => {
 	window.swup.hooks.on('link:click', () => {
 		// Remove the delay for the first time page load
 		document.documentElement.style.setProperty('--content-delay', '0ms')
+
+		// prevent elements from overlapping the navbar
+		if (!bannerEnabled) {
+			return
+		}
+		let threshold = window.innerHeight * (BANNER_HEIGHT / 100) - 72 - 16
+		let navbar = document.getElementById('navbar-wrapper')
+		if (!navbar || !document.body.classList.contains('lg:is-home')) {
+			return
+		}
+		if (document.body.scrollTop >= threshold || document.documentElement.scrollTop >= threshold) {
+			navbar.classList.add('navbar-hidden')
+		}
 	})
 	window.swup.hooks.on('content:replace', initCustomScrollbar)
 	window.swup.hooks.on('visit:start', (visit: {to: {url: string}}) => {
@@ -399,6 +412,12 @@ const setup = () => {
 			bodyElement!.classList.add('lg:is-home');
 		} else {
 			bodyElement!.classList.remove('lg:is-home');
+		}
+
+		// Reset hero cover state when navigating away from homepage
+		const heroCoverEl = document.getElementById('hero-cover');
+		if (heroCoverEl && !pathsEqual(visit.to.url, url('/'))) {
+			heroCoverEl.classList.remove('hero-cover-minimized');
 		}
 
 		// increase the page height during page transition to prevent the scrolling animation from jumping
@@ -433,6 +452,13 @@ const setup = () => {
                 toc.classList.remove('toc-not-ready')
             }
 
+			// Reset hero cover when returning to homepage
+			const heroCoverEl = document.getElementById('hero-cover');
+			if (heroCoverEl && pathsEqual(visit.to.url, url('/'))) {
+				heroCoverEl.classList.remove('hero-cover-minimized');
+				// Scroll to top when returning to homepage
+				window.scrollTo({ top: 0, behavior: 'smooth' });
+			}
         }, 200)
 	});
 }
@@ -445,10 +471,21 @@ if (window?.swup?.hooks) {
 let backToTopBtn = document.getElementById('back-to-top-btn');
 let toc = document.getElementById('toc-wrapper');
 let navbar = document.getElementById('navbar-wrapper')
+const heroCover = document.getElementById('hero-cover');
 
 function scrollFunction() {
 	const scrollTop = document.body.scrollTop || document.documentElement.scrollTop;
 	let bannerHeight = window.innerHeight * (BANNER_HEIGHT / 100)
+
+	// Handle hero cover minimization
+	if (heroCover) {
+		const HERO_COVER_MINIMIZE_THRESHOLD = window.innerHeight * 0.3; // Start minimizing at 30% of viewport
+		if (scrollTop > HERO_COVER_MINIMIZE_THRESHOLD) {
+			heroCover.classList.add('hero-cover-minimized');
+		} else {
+			heroCover.classList.remove('hero-cover-minimized');
+		}
+	}
 
 	if (backToTopBtn) {
 		if (scrollTop > bannerHeight) {
@@ -466,8 +503,22 @@ function scrollFunction() {
 		}
 	}
 
-	// Navbar should always be visible, so we don't hide it anymore
-	// Removed navbar hiding logic to keep navbar always visible
+	if (!bannerEnabled) return
+	if (navbar) {
+		const NAVBAR_HEIGHT = 72
+		const MAIN_PANEL_EXCESS_HEIGHT = MAIN_PANEL_OVERLAPS_BANNER_HEIGHT * 16			// The height the main panel overlaps the banner
+
+		let bannerHeight = BANNER_HEIGHT
+		if (document.body.classList.contains('lg:is-home') && window.innerWidth >= 1024) {
+			bannerHeight = BANNER_HEIGHT_HOME
+		}
+		let threshold = window.innerHeight * (bannerHeight / 100) - NAVBAR_HEIGHT - MAIN_PANEL_EXCESS_HEIGHT - 16
+		if (scrollTop >= threshold) {
+			navbar.classList.add('navbar-hidden')
+		} else {
+			navbar.classList.remove('navbar-hidden')
+		}
+	}
 }
 window.onscroll = scrollFunction
 
