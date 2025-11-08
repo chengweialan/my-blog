@@ -15,6 +15,3 @@ export const MAIN_PANEL_OVERLAPS_BANNER_HEIGHT = 3.5;
 
 // Page width: rem
 export const PAGE_WIDTH = 75;
-
-// Hero cover height: viewport height
-export const HERO_COVER_HEIGHT = 100; // 100vh
