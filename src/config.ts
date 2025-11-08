@@ -77,7 +77,7 @@ export const profileConfig: ProfileConfig = {
 		{
 			name: "Email",
 			icon: "material-symbols:mail-sharp",
-			url: "chengweialan@gmail.com",
+			url: "mailto:chengweialan@gmail.com",  // ✅ 添加 mailto: 协议
 		}
 	],
 };
