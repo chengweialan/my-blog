@@ -7,9 +7,13 @@ import darkBgImageSrc from "../assets/images/joy4_2.jpeg";
 
 // 确保是字符串类型
 const lightBgImage: string =
-	typeof lightBgImageSrc === "string" ? lightBgImageSrc : lightBgImageSrc.src || "";
+	typeof lightBgImageSrc === "string"
+		? lightBgImageSrc
+		: lightBgImageSrc.src || "";
 const darkBgImage: string =
-	typeof darkBgImageSrc === "string" ? darkBgImageSrc : darkBgImageSrc.src || "";
+	typeof darkBgImageSrc === "string"
+		? darkBgImageSrc
+		: darkBgImageSrc.src || "";
 
 let canvas: HTMLCanvasElement;
 let ctx: CanvasRenderingContext2D | null = null;
