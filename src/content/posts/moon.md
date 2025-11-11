@@ -7,6 +7,7 @@ tags: ["文章", "诗词"]
 category: '文学'
 draft: false 
 lang: 'zh_CN'
+series: '文学'
 ---
 
 <div align="right">
