@@ -10,6 +10,7 @@ import { getSortedPosts } from "@utils/content-utils";
 import { getDir, getPostUrlBySlug } from "@utils/url-utils";
 import { Icon } from "astro-icon/components";
 import { licenseConfig } from "src/config";
+import Giscus from "../../components/GiscusComments.astro";
 import ImageWrapper from "../../components/misc/ImageWrapper.astro";
 import PostMetadata from "../../components/PostMeta.astro";
 import { profileConfig, siteConfig } from "../../config";
@@ -136,7 +137,7 @@ const jsonLd = {
         </a>
     </div>
 
-    <script src="https://giscus.app/client.js"
+    <!-- <script src="https://giscus.app/client.js"
         data-repo="chengweialan/my-blog"
         data-repo-id="R_kgDOQRHw9Q"
         data-category="Announcements"
@@ -150,5 +151,12 @@ const jsonLd = {
         data-lang="zh-CN"
         crossorigin="anonymous"
         async>
-</script>
+    </script> -->
+
+    <Giscus
+       repo="chengweialan/my-blog"
+       repoId="R_kgDOQRHw9Q"
+       category="Announcements"
+       categoryId="DIC_kwDOQRHw9c4Cxqmn"
+   />
 </MainGridLayout>
