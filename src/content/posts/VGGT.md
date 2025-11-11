@@ -2,11 +2,12 @@
 title: VGGT学习记录
 published: 2025-11-08
 description: 'VGGT论文及代码解读'
-image: ''
+image: './images/vggt/vggt.png'
 tags: ["人工智能", "Transformer"]
 category: '人工智能'
 draft: false 
 lang: ''
+series: '科研'
 ---
 
 # VGGT论文阅读与代码解读(待续)
