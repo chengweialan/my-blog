@@ -9,7 +9,7 @@ draft: false
 lang: ''
 ---
 
-# VGGT论文阅读与代码解读
+# VGGT论文阅读与代码解读(待续)
 
 > 近期在用Transformer做3D视觉相关的工作，自然关注到2025 CVPR最佳论文 [VGGT: Visual Geometry Grounded Transformer](https://arxiv.org/abs/2503.11651)。VGGT能实现单次端到端从图像预测3D场景主要基本属性，其架构对我当前的Research有一定借鉴意义。借此机会记录论文及代码的阅读过程。
 
@@ -36,7 +36,7 @@ Aggregator是算法的主要模块，针对图片输入实现交替注意力机�
 
 
 
-### 核心模块拆解
+<!-- ### 核心模块拆解
 关键文件：`models/vgg_t.py`。以下是简化版代码解读：
 
 ```
@@ -44,4 +44,4 @@ Aggregator是算法的主要模块，针对图片输入实现交替注意力机�
 #### Camera Head
 
 AdaLN： 取消梯度
-Small Transformer
+Small Transformer -->
