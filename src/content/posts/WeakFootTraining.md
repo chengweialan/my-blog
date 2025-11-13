@@ -2,7 +2,7 @@
 title: 玮指导的逆足训练日记
 published: 2025-11-13
 description: '主观地记录一下逆足训练过程中每天发生的变化'
-image: ''
+image: './images/Weakfoot/cherkey.jpeg'
 tags: ['足球', '生活']
 category: '足球'
 draft: false 
