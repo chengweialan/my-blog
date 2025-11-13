@@ -35,13 +35,13 @@ class VGGT(nn.Module, PyTorchModelHubMixin):
 
 Aggregator是算法的主要模块，针对图片输入实现交替注意力机制（Alternating-attention），四个Head针对不同的下游任务进行设计，分别预测相机位姿、深度图像、3D point map和Track特征（用于后续实现Tracking）。
 
-
+z g f h g f i yi j o o i o i j f tu g y g ku h k j h chen ge u o
 
 <!-- ### 核心模块拆解
 关键文件：`models/vgg_t.py`。以下是简化版代码解读：
 
 ```
-```
+```就、
 #### Camera Head
 
 AdaLN： 取消梯度
