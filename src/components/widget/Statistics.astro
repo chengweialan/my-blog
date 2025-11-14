@@ -1,0 +1,89 @@
+---
+import I18nKey from "../../i18n/i18nKey";
+import { i18n } from "../../i18n/translation";
+import WidgetLayout from "./WidgetLayout.astro";
+
+interface Props {
+	class?: string;
+	style?: string;
+}
+const className = Astro.props.class;
+const style = Astro.props.style;
+---
+
+<WidgetLayout name={i18n(I18nKey.statistics)} id="statistics" isCollapsed={false} class={className} style={style}>
+    <div class="flex flex-col gap-3">
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-black/60 dark:text-white/60">{i18n(I18nKey.totalViews)}</span>
+            <span id="total-views" class="text-sm font-semibold text-black/90 dark:text-white/90">0</span>
+        </div>
+        <div class="flex items-center justify-between">
+            <span class="text-sm text-black/60 dark:text-white/60">{i18n(I18nKey.totalVisitors)}</span>
+            <span id="total-visitors" class="text-sm font-semibold text-black/90 dark:text-white/90">0</span>
+        </div>
+    </div>
+</WidgetLayout>
+
+<script>
+    // 统计逻辑
+    const STORAGE_KEY_VIEWS = 'blog_total_views';
+    const STORAGE_KEY_VISITORS = 'blog_total_visitors';
+    const SESSION_KEY_VISITED = 'blog_session_visited';
+
+    function updateStatistics() {
+        // 检查是否是文章页面（路径包含 /posts/）
+        const isPostPage = window.location.pathname.includes('/posts/');
+        const currentPath = window.location.pathname;
+        
+        // 更新浏览次数（每打开一次任意文章就+1）
+        if (isPostPage) {
+            // 使用当前路径作为key，避免同一文章在同一会话中重复计数
+            const pageVisitKey = `visited_${currentPath}`;
+            if (!sessionStorage.getItem(pageVisitKey)) {
+                let views = parseInt(localStorage.getItem(STORAGE_KEY_VIEWS) || '0', 10);
+                views += 1;
+                localStorage.setItem(STORAGE_KEY_VIEWS, views.toString());
+                sessionStorage.setItem(pageVisitKey, 'true');
+            }
+        }
+        
+        // 更新访问人数（每打开一次该blog就+1，使用sessionStorage避免同一会话重复计数）
+        if (!sessionStorage.getItem(SESSION_KEY_VISITED)) {
+            let visitors = parseInt(localStorage.getItem(STORAGE_KEY_VISITORS) || '0', 10);
+            visitors += 1;
+            localStorage.setItem(STORAGE_KEY_VISITORS, visitors.toString());
+            sessionStorage.setItem(SESSION_KEY_VISITED, 'true');
+        }
+        
+        // 显示当前统计数字
+        const views = parseInt(localStorage.getItem(STORAGE_KEY_VIEWS) || '0', 10);
+        const visitors = parseInt(localStorage.getItem(STORAGE_KEY_VISITORS) || '0', 10);
+        
+        const viewsElement = document.getElementById('total-views');
+        const visitorsElement = document.getElementById('total-visitors');
+        
+        if (viewsElement) {
+            viewsElement.textContent = views.toLocaleString();
+        }
+        if (visitorsElement) {
+            visitorsElement.textContent = visitors.toLocaleString();
+        }
+    }
+
+    // 页面加载时更新统计
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', updateStatistics);
+    } else {
+        updateStatistics();
+    }
+
+    // 如果使用 Swup，在页面切换时也更新统计
+    if (window.swup) {
+        window.swup.hooks.on('page:view', updateStatistics);
+    } else {
+        document.addEventListener('swup:enable', () => {
+            window.swup.hooks.on('page:view', updateStatistics);
+        });
+    }
+</script>
+
